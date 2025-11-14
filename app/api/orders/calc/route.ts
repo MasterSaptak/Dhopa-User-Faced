@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getSupabaseAdminClient } from "@/lib/supabase-admin"
+import { createSupabaseRouteHandlerClient } from "@/lib/supabase-server"
 import { calculateOrderPricing } from "@/lib/pricing"
-import { cookies } from "next/headers"
+
+function mergeResponseCookies(source: NextResponse, target: NextResponse) {
+  source.cookies.getAll().forEach((cookie) => {
+    target.cookies.set(cookie)
+  })
+}
 
 export async function POST(request: NextRequest) {
+  const { supabase: authClient, response } = createSupabaseRouteHandlerClient(request)
+
   try {
     const body = await request.json()
     const { items, addons, deliveryType, discountCode, zoneId } = body
@@ -13,16 +21,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid items data" }, { status: 400 })
     }
 
-    const supabase = getSupabaseAdminClient()
+    const supabaseAdmin = getSupabaseAdminClient()
 
     // Fetch current prices from database
     const itemIds = items.map((item: any) => item.id)
     const addonIds = addons?.map((addon: any) => addon.id) || []
 
     const [itemsResult, addonsResult] = await Promise.all([
-      supabase.from("items").select("id, base_price").in("id", itemIds),
+      supabaseAdmin.from("items").select("id, base_price").in("id", itemIds),
       addonIds.length > 0
-        ? supabase.from("add_ons").select("id, price").in("id", addonIds)
+        ? supabaseAdmin.from("add_ons").select("id, price").in("id", addonIds)
         : Promise.resolve({ data: [], error: null }),
     ])
 
@@ -54,17 +62,19 @@ export async function POST(request: NextRequest) {
 
     // Get customer tier for discount calculation
     let customerTier = undefined
-    try {
-      const cookieStore = await cookies()
-      const userId = cookieStore.get("user_id")?.value
 
-      if (userId) {
-        const { data: customer } = await supabase.from("customers").select("loyalty_tier").eq("id", userId).single()
+    const {
+      data: { session },
+    } = await authClient.auth.getSession()
 
-        customerTier = customer?.loyalty_tier
-      }
-    } catch (e) {
-      // Customer not found or not logged in - continue without tier
+    if (session?.user) {
+      const { data: customer } = await supabaseAdmin
+        .from("customers")
+        .select("loyalty_tier")
+        .eq("id", session.user.id)
+        .maybeSingle()
+
+      customerTier = customer?.loyalty_tier
     }
 
     // Calculate pricing
@@ -77,12 +87,16 @@ export async function POST(request: NextRequest) {
       zoneId,
     )
 
-    return NextResponse.json({
+    const success = NextResponse.json({
       pricing,
       success: true,
     })
+    mergeResponseCookies(response, success)
+    return success
   } catch (error: any) {
     console.error("[v0] Order calculation error:", error)
-    return NextResponse.json({ error: error.message || "Failed to calculate order" }, { status: 500 })
+    const failure = NextResponse.json({ error: error.message || "Failed to calculate order" }, { status: 500 })
+    mergeResponseCookies(response, failure)
+    return failure
   }
 }

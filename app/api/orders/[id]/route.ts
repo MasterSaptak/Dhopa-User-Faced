@@ -1,39 +1,69 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
+
 import { getSupabaseAdminClient } from "@/lib/supabase-admin"
-import { cookies } from "next/headers"
+import { createSupabaseRouteHandlerClient } from "@/lib/supabase-server"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+function mergeResponseCookies(source: NextResponse, target: NextResponse) {
+  source.cookies.getAll().forEach((cookie) => {
+    target.cookies.set(cookie)
+  })
+}
+
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const { supabase, response } = createSupabaseRouteHandlerClient(request)
+
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession()
+
+  if (sessionError) {
+    console.error("[DHOPA] Failed to fetch Supabase session:", sessionError.message)
+    const errorResponse = NextResponse.json({ error: "Session lookup failed" }, { status: 500 })
+    mergeResponseCookies(response, errorResponse)
+    return errorResponse
+  }
+
+  if (!session?.user) {
+    const unauthorized = NextResponse.json({ error: "Authentication required" }, { status: 401 })
+    mergeResponseCookies(response, unauthorized)
+    return unauthorized
+  }
+
   try {
-    const cookieStore = await cookies()
-    const userId = cookieStore.get("user_id")?.value
+    const supabaseAdmin = getSupabaseAdminClient()
 
-    if (!userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
-    }
-
-    const supabase = getSupabaseAdminClient()
-
-    // Fetch order with items and add-ons
-    const { data: order, error: orderError } = await supabase
+    const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select(`
-        *,
-        order_items (*),
-        order_addons (*)
-      `)
+      .select(
+        `
+          *,
+          order_items (*),
+          order_addons (*)
+        `,
+      )
       .eq("id", params.id)
-      .eq("customer_id", userId)
+      .eq("customer_id", session.user.id)
       .single()
 
-    if (orderError) throw orderError
-
-    if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 })
+    if (orderError) {
+      throw orderError
     }
 
-    return NextResponse.json({ order })
+    if (!order) {
+      const notFound = NextResponse.json({ error: "Order not found" }, { status: 404 })
+      mergeResponseCookies(response, notFound)
+      return notFound
+    }
+
+    const success = NextResponse.json({ order })
+    mergeResponseCookies(response, success)
+    return success
   } catch (error) {
-    console.error("[v0] Order fetch error:", error)
-    return NextResponse.json({ error: "Failed to fetch order" }, { status: 500 })
+    console.error("[DHOPA] Order fetch error:", error)
+    const failure = NextResponse.json({ error: "Failed to fetch order" }, { status: 500 })
+    mergeResponseCookies(response, failure)
+    return failure
   }
 }

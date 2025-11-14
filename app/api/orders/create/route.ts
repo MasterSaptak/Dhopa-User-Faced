@@ -1,10 +1,36 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getSupabaseAdminClient } from "@/lib/supabase-admin"
+import { createSupabaseRouteHandlerClient } from "@/lib/supabase-server"
 import { calculateOrderPricing } from "@/lib/pricing"
-import { cookies } from "next/headers"
+
+function mergeResponseCookies(source: NextResponse, target: NextResponse) {
+  source.cookies.getAll().forEach((cookie) => {
+    target.cookies.set(cookie)
+  })
+}
 
 export async function POST(request: NextRequest) {
+  const { supabase: authClient, response } = createSupabaseRouteHandlerClient(request)
+
+  const {
+    data: { session },
+    error: sessionError,
+  } = await authClient.auth.getSession()
+
+  if (sessionError) {
+    console.error("[DHOPA] Failed to fetch Supabase session:", sessionError.message)
+    const errorResponse = NextResponse.json({ error: "Session lookup failed" }, { status: 500 })
+    mergeResponseCookies(response, errorResponse)
+    return errorResponse
+  }
+
+  if (!session?.user) {
+    const unauthorized = NextResponse.json({ error: "Authentication required" }, { status: 401 })
+    mergeResponseCookies(response, unauthorized)
+    return unauthorized
+  }
+
   try {
     const body = await request.json()
     const {
@@ -27,33 +53,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Items are required" }, { status: 400 })
     }
 
-    // Get authenticated user
-    const cookieStore = await cookies()
-    const userId = cookieStore.get("user_id")?.value
+    const userId = session.user.id
 
-    if (!userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
-    }
-
-    const supabase = getSupabaseAdminClient()
+    const supabaseAdmin = getSupabaseAdminClient()
 
     // Fetch current prices from database (authoritative source)
     const itemIds = items.map((item: any) => item.id)
     const addonIds = addons?.map((addon: any) => addon.id) || []
 
     const [itemsResult, addonsResult, customerResult] = await Promise.all([
-      supabase.from("items").select("*").in("id", itemIds).eq("is_active", true),
+      supabaseAdmin.from("items").select("*").in("id", itemIds).eq("is_active", true),
       addonIds.length > 0
-        ? supabase.from("add_ons").select("*").in("id", addonIds).eq("is_active", true)
+        ? supabaseAdmin.from("add_ons").select("*").in("id", addonIds).eq("is_active", true)
         : Promise.resolve({ data: [], error: null }),
-      supabase.from("customers").select("*").eq("id", userId).single(),
+      supabaseAdmin.from("customers").select("*").eq("id", userId).single(),
     ])
 
     if (itemsResult.error) throw itemsResult.error
     if (addonsResult.error) throw addonsResult.error
     if (customerResult.error) {
       // Customer profile doesn't exist - create it
-      const { error: createError } = await supabase
+      const { error: createError } = await supabaseAdmin
         .from("customers")
         .insert({ id: userId, full_name: "Customer", loyalty_points: 0 })
 
@@ -101,7 +121,7 @@ export async function POST(request: NextRequest) {
     const orderNumber = `ORD-${Date.now().toString().slice(-8)}`
 
     // Create order in transaction
-    const { data: order, error: orderError } = await supabase
+    const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
       .insert({
         order_number: orderNumber,
@@ -160,7 +180,7 @@ export async function POST(request: NextRequest) {
         item.quantity,
     }))
 
-    const { error: itemsInsertError } = await supabase.from("order_items").insert(orderItemsData)
+    const { error: itemsInsertError } = await supabaseAdmin.from("order_items").insert(orderItemsData)
 
     if (itemsInsertError) throw itemsInsertError
 
@@ -173,13 +193,13 @@ export async function POST(request: NextRequest) {
         price: addon.price,
       }))
 
-      const { error: addonsInsertError } = await supabase.from("order_addons").insert(orderAddonsData)
+      const { error: addonsInsertError } = await supabaseAdmin.from("order_addons").insert(orderAddonsData)
 
       if (addonsInsertError) throw addonsInsertError
     }
 
     // Create invoice using RPC
-    const { data: invoiceId, error: invoiceError } = await supabase.rpc("create_invoice_with_revenue", {
+    const { data: invoiceId, error: invoiceError } = await supabaseAdmin.rpc("create_invoice_with_revenue", {
       p_order_id: order.id,
       p_customer_id: userId,
       p_amount: pricing.total,
@@ -190,18 +210,22 @@ export async function POST(request: NextRequest) {
       // Continue even if invoice fails
     } else {
       // Update order with invoice ID
-      await supabase.from("orders").update({ invoice_id: invoiceId }).eq("id", order.id)
+      await supabaseAdmin.from("orders").update({ invoice_id: invoiceId }).eq("id", order.id)
     }
 
-    return NextResponse.json({
+    const success = NextResponse.json({
       success: true,
       order: {
         ...order,
         invoice_id: invoiceId,
       },
     })
+    mergeResponseCookies(response, success)
+    return success
   } catch (error: any) {
     console.error("[v0] Order creation error:", error)
-    return NextResponse.json({ error: error.message || "Failed to create order" }, { status: 500 })
+    const failure = NextResponse.json({ error: error.message || "Failed to create order" }, { status: 500 })
+    mergeResponseCookies(response, failure)
+    return failure
   }
 }

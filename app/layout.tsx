@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register"
 import { OfflineIndicator } from "@/components/offline/offline-indicator"
+import { SupabaseSessionListener } from "@/components/providers/supabase-session-listener"
 import "./globals.css"
 
 const poppins = Poppins({
@@ -63,6 +64,7 @@ export default function RootLayout({
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(152,206,255,0.35),transparent_60%),radial-gradient(circle_at_85%_15%,rgba(116,194,255,0.3),transparent_55%),radial-gradient(circle_at_50%_85%,rgba(180,226,255,0.4),transparent_60%)]" />
           <div className="pointer-events-none absolute inset-0 backdrop-blur-[110px]" />
           <main className="relative z-10 flex min-h-screen flex-col">
+            <SupabaseSessionListener />
             {children}
           </main>
           <Analytics />

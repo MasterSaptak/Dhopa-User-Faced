@@ -1,3 +1,4 @@
+// README: Premium loyalty card styling refresh (2025-11-14). Revert via `git checkout -- components/profile/loyalty-card.tsx`.
 "use client"
 
 import { Card } from "@/components/ui/card"
@@ -21,56 +22,66 @@ export function LoyaltyCard({ points }: LoyaltyCardProps) {
 
   return (
     <Card
-      className={`rounded-3xl border-0 bg-gradient-to-br ${currentTier.color} p-6 text-white shadow-xl shadow-primary/30`}
+      className={`space-y-5 rounded-3xl border border-white/10 bg-gradient-to-br ${currentTier.color} p-6 text-white shadow-[0_45px_120px_-50px_rgba(56,189,248,0.5)] backdrop-blur-lg md:p-7`}
     >
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Award className="w-6 h-6" />
-            <h3 className="text-2xl font-bold">{currentTier.name} Member</h3>
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.28em] text-white/80">
+            <Award className="h-5 w-5" aria-hidden="true" />
+            loyalty status
           </div>
-          <p className="text-white/80 text-sm">Your loyalty tier</p>
+          <h3 className="text-3xl font-bold">{currentTier.name} member</h3>
+          <p className="text-sm text-white/80">Exclusive benefits unlocked for your tier.</p>
         </div>
-        <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-          <TrendingUp className="w-3 h-3 mr-1" />
+        <Badge className="rounded-full border-white/40 bg-white/20 text-white shadow-sm shadow-black/10">
+          <TrendingUp className="mr-1 h-3 w-3" aria-hidden="true" />
           Active
         </Badge>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-white/80 text-sm">Total Points</span>
-          <span className="text-3xl font-bold">{points}</span>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between text-sm text-white/85">
+          <span>Total points</span>
+          <span className="text-3xl font-bold text-white">{points}</span>
         </div>
 
-        {nextTier && pointsToNext !== null && (
+        {nextTier && pointsToNext !== null ? (
           <>
-            <Progress value={progress} className="h-2 bg-white/20" />
-            <p className="text-white/80 text-sm">
-              {pointsToNext} points to {nextTier.name} tier
+            <Progress value={progress} className="h-2 overflow-hidden rounded-full bg-white/25 [&>div]:bg-white/80" />
+            <p className="text-sm text-white/85">
+              Only <span className="font-semibold text-white">{pointsToNext}</span> points until you reach{" "}
+              <span className="font-semibold text-white">{nextTier.name}</span>.
             </p>
           </>
-        )}
-
-        {!nextTier && (
-          <p className="text-white/80 text-sm flex items-center gap-2">
-            <Award className="w-4 h-4" />
-            You&apos;ve reached the highest tier!
+        ) : (
+          <p className="flex items-center gap-2 text-sm text-white/85">
+            <Award className="h-4 w-4" aria-hidden="true" />
+            You&apos;ve reached the highest tier! Enjoy priority perks all year round.
           </p>
         )}
       </div>
 
-      <div className="space-y-2 pt-4 border-t border-white/20">
-        <h4 className="font-semibold text-sm text-white/80">Your Benefits</h4>
-        <ul className="space-y-1">
+      <div className="space-y-3 rounded-2xl border border-white/20 bg-white/10 px-4 py-3">
+        <h4 className="text-sm font-semibold uppercase tracking-[0.28em] text-white/70">Benefits</h4>
+        <ul className="space-y-1.5">
           {currentTier.benefits.map((benefit, index) => (
-            <li key={index} className="text-sm flex items-start gap-2">
-              <span className="text-white/60">•</span>
+            <li key={index} className="flex items-start gap-2 text-sm text-white/90">
+              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-white/60" aria-hidden="true" />
               <span>{benefit}</span>
             </li>
           ))}
         </ul>
       </div>
+
+      {nextTier && pointsToNext !== null && (
+        <div className="rounded-2xl border border-white/15 bg-black/10 px-4 py-3 text-sm text-white/85">
+          <p>
+            Book an express pickup this week and earn an extra{" "}
+            <span className="font-semibold text-white">+25 points</span>. You&apos;re closer to{" "}
+            <span className="font-semibold text-white">{nextTier.name}</span> than ever.
+          </p>
+        </div>
+      )}
     </Card>
   )
 }

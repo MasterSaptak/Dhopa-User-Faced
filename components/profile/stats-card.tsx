@@ -1,3 +1,4 @@
+// README: Premium stats card styling refresh (2025-11-14). Revert via `git checkout -- components/profile/stats-card.tsx`.
 "use client"
 
 import { Card } from "@/components/ui/card"
@@ -17,19 +18,19 @@ export function StatsCard() {
       label: "Total Orders",
       value: totalOrders,
       icon: ShoppingBag,
-      color: "text-blue-600",
+      accent: "from-cyan-400/60 via-sky-500/30 to-blue-500/30",
     },
     {
       label: "Completed",
       value: completedOrders,
       icon: Package,
-      color: "text-green-600",
+      accent: "from-emerald-400/60 via-teal-500/30 to-cyan-500/30",
     },
     {
       label: "In Progress",
       value: pendingOrders,
       icon: Clock,
-      color: "text-yellow-600",
+      accent: "from-amber-400/60 via-orange-400/30 to-pink-400/30",
     },
   ]
 
@@ -38,17 +39,16 @@ export function StatsCard() {
       {stats.map((stat) => (
         <Card
           key={stat.label}
-          className="rounded-3xl border border-white/60 bg-white/95 p-6 shadow-lg shadow-primary/10 backdrop-blur text-slate-900"
+          className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.08] p-6 text-slate-100 shadow-xl shadow-cyan-500/10 backdrop-blur-lg"
         >
           <div className="flex items-center gap-4">
-            <div
-              className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 ${stat.color}`}
-            >
-              <stat.icon className="w-6 h-6" />
+            <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/10 text-white">
+              <span className={`absolute inset-0 bg-gradient-to-br ${stat.accent}`} aria-hidden="true" />
+              <stat.icon className="h-6 w-6" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-2xl font-semibold leading-none">{stat.value}</p>
-              <p className="text-sm text-slate-600">{stat.label}</p>
+              <p className="text-2xl font-semibold leading-none text-white">{stat.value}</p>
+              <p className="text-sm text-slate-300">{stat.label}</p>
             </div>
           </div>
         </Card>
