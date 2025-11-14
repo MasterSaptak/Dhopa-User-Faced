@@ -197,55 +197,89 @@ export function ServiceItemCard({ item, viewMode = "grid" }: ServiceItemCardProp
 
   return (
     <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
       variants={{
-        rest: { y: 0, opacity: 1 },
-        hover: shouldReduceMotion ? { y: 0, opacity: 1 } : { y: -6, opacity: 1 },
+        rest: { y: 0, opacity: 1, scale: 1 },
+        hover: shouldReduceMotion ? { y: 0, opacity: 1, scale: 1 } : { y: -4, opacity: 1, scale: 1.02 },
       }}
-      initial="rest"
       whileHover="hover"
       whileFocus="hover"
-      className="group"
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      className="group h-full"
     >
-      <Card className="relative flex h-full flex-col gap-5 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.08] p-5 text-slate-100 shadow-lg shadow-cyan-500/5 transition-colors backdrop-blur-xl focus-within:ring-2 focus-within:ring-cyan-200/80 md:gap-6">
+      <Card className="relative flex h-full min-h-[280px] flex-col overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 p-4 text-slate-100 shadow-lg shadow-cyan-500/10 transition-all duration-300 backdrop-blur-xl focus-within:ring-2 focus-within:ring-cyan-200/80 group-hover:border-cyan-400/40 group-hover:shadow-xl group-hover:shadow-cyan-500/20 md:p-5">
         <motion.span
           aria-hidden="true"
-          className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-br from-cyan-400/12 via-sky-500/10 to-blue-500/15 opacity-0 transition group-hover:opacity-100"
+          className="absolute inset-0 -z-10 rounded-2xl bg-gradient-to-br from-cyan-400/15 via-sky-500/12 to-blue-500/18 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         />
 
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            {iconBlock}
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-base font-semibold leading-tight text-white md:text-lg">{item.name}</h3>
+        {/* Header: Icon and Title */}
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/30 to-sky-500/25 text-cyan-100 shadow-lg shadow-cyan-500/30 transition-transform duration-300 group-hover:scale-110">
+              {media ? (
+                item.image ? (
+                  <img src={item.image} alt={item.name} className="h-10 w-10 rounded-lg object-cover" />
+                ) : (
+                  <span className="text-xl" aria-hidden="true">
+                    {item.icon}
+                  </span>
+                )
+              ) : (
+                <Shirt className="h-5 w-5" aria-hidden="true" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex items-start gap-2">
+                <h3 className="text-sm font-semibold leading-tight text-white md:text-base line-clamp-2">{item.name}</h3>
                 {item.discount?.note && (
-                  <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-200">
+                  <span className="flex-shrink-0 rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
                     {item.discount.note}
                   </span>
                 )}
+                {tooltip}
               </div>
-              <p className="text-xs text-slate-300 md:text-sm">
-                {hasDiscount
-                  ? `Save ${formatCurrency(basePrice - finalPrice)} per unit compared to standard pricing.`
-                  : "Perfect for daily fabrics that need extra care."}
-              </p>
             </div>
           </div>
-
-          {tooltip}
         </div>
 
-        <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
-          {priceBadge}
+        {/* Price Section */}
+        <div className="mb-3 flex flex-col gap-2 rounded-xl border border-white/15 bg-slate-800/60 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-medium uppercase tracking-wider text-slate-300">
+              {hasDiscount ? "Member price" : "Standard price"}
+            </span>
+            {hasDiscount && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+                <Sparkles className="h-2.5 w-2.5" aria-hidden="true" />
+                {item.discount?.type === "percent" ? `${item.discount.value}% off` : `₹${item.discount?.value} off`}
+              </span>
+            )}
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-lg font-bold text-white md:text-xl">{formatCurrency(finalPrice)}</span>
+            {hasDiscount && (
+              <span className="text-xs text-slate-400 line-through">{formatCurrency(basePrice)}</span>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center justify-between gap-4">
-          <p className="hidden text-sm text-slate-300 md:block">
-            {hasDiscount
-              ? `Buy now to lock in ${formatCurrency(basePrice - finalPrice)} savings per garment.`
-              : "Add to your wash list for premium care and folding."}
-          </p>
-          <div className="flex flex-1 justify-end md:flex-none">{quantityControls}</div>
+        {/* Description */}
+        <p className="mb-3 line-clamp-2 text-xs text-slate-300 leading-relaxed">
+          {item.description || (hasDiscount
+            ? `Save ${formatCurrency(basePrice - finalPrice)} per unit`
+            : "Premium care and folding")}
+        </p>
+
+        {/* Quantity Controls - Always at bottom */}
+        <div className="mt-auto flex items-center justify-between gap-2 pt-2 border-t border-white/15">
+          <span className="text-[10px] text-slate-400/90">
+            {quantity > 0 ? `${quantity} in cart` : "Tap to add"}
+          </span>
+          <div className="flex-shrink-0">
+            {quantityControls}
+          </div>
         </div>
       </Card>
     </motion.div>

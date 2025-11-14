@@ -85,7 +85,35 @@ export const useStore = create<AppState>()(
       isAdmin: false,
       preferredDeliveryOption: defaultDelivery[0]?.id ?? null,
 
-      setUser: (user) => set({ user }),
+      setUser: (user) =>
+        set((state) => {
+          if (!user) {
+            return { user: null }
+          }
+
+          const previousId = state.user?.id
+          const nextId = user.id
+
+          if (nextId && previousId !== nextId) {
+            const resetDelivery = clone(defaultDelivery).map((option, index) => ({
+              ...option,
+              quantity: index === 0 ? 1 : 0,
+            }))
+
+            return {
+              user,
+              cart: [],
+              selectedAddons: [],
+              orders: [],
+              loyaltyPoints: null,
+              draftOrders: [],
+              preferredDeliveryOption: resetDelivery[0]?.id ?? null,
+              deliveryOptionsCatalog: resetDelivery,
+            }
+          }
+
+          return { user }
+        }),
 
       setLoyaltyPoints: (points) => set({ loyaltyPoints: points }),
 

@@ -27,7 +27,7 @@ export function OrderHeader() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <button
           type="button"
-          onClick={() => router.push("/order")}
+          onClick={() => router.push("/")}
           className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-left text-sm font-semibold text-cyan-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/80"
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400/50 via-sky-400/40 to-blue-500/40 text-white shadow-inner shadow-cyan-500/30">
@@ -60,8 +60,16 @@ export function OrderHeader() {
           </Button>
           <Button
             variant="ghost"
+            className="hidden items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-rose-400/40 hover:bg-rose-500/15 hover:text-white focus-visible:ring-2 focus-visible:ring-rose-200/80 md:inline-flex"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            Logout
+          </Button>
+          <Button
+            variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-xl border border-transparent text-slate-200 transition hover:border-rose-400/30 hover:bg-rose-500/10 hover:text-rose-100 focus-visible:ring-2 focus-visible:ring-rose-200/80 md:h-10 md:w-10"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-transparent text-slate-200 transition hover:border-rose-400/40 hover:bg-rose-500/15 hover:text-white focus-visible:ring-2 focus-visible:ring-rose-200/80 md:hidden"
             onClick={handleLogout}
             aria-label="Log out"
           >

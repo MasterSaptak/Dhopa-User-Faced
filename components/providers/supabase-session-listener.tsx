@@ -9,12 +9,30 @@ export function SupabaseSessionListener() {
   const setUser = useStore((state) => state.setUser)
   const logoutUser = useStore((state) => state.logoutUser)
   const hasInitialized = useRef(false)
+  const lastSyncedUserRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return
 
     const supabase = getSupabaseBrowserClient()
     let isMounted = true
+
+    const ensureProfile = async (userId: string) => {
+      if (lastSyncedUserRef.current === userId) {
+        return
+      }
+
+      try {
+        const response = await fetch("/api/auth/profile", { method: "POST" })
+        if (!response.ok) {
+          console.warn("[DHOPA] Profile sync response:", await response.text())
+        } else {
+          lastSyncedUserRef.current = userId
+        }
+      } catch (error) {
+        console.error("[DHOPA] Profile sync failed:", error)
+      }
+    }
 
     const syncSession = async () => {
       const { data, error } = await supabase.auth.getSession()
@@ -29,9 +47,12 @@ export function SupabaseSessionListener() {
       const sessionUser = data.session?.user
 
       if (!sessionUser) {
+        lastSyncedUserRef.current = null
         logoutUser()
         return
       }
+
+      await ensureProfile(sessionUser.id)
 
       const profile = await supabase
         .from("profiles")
@@ -64,7 +85,10 @@ export function SupabaseSessionListener() {
         return
       }
 
-      void supabase
+      void (async () => {
+        await ensureProfile(session.user.id)
+
+        return supabase
         .from("profiles")
         .select("name, email, phone")
         .eq("id", session.user.id)
@@ -87,6 +111,7 @@ export function SupabaseSessionListener() {
             phone: (session.user.user_metadata?.phone as string | undefined) ?? undefined,
           })
         })
+      })()
     })
 
     return () => {

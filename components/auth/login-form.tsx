@@ -118,22 +118,14 @@ export function LoginForm() {
     const isEmail = trimmedIdentifier.includes("@")
 
     if (!supabaseConfigured) {
-      setTimeout(() => {
-        setUser({
-          id: `demo-${Date.now()}`,
-          email: isEmail ? trimmedIdentifier : "",
-          phone: isEmail ? undefined : trimmedIdentifier,
-          full_name: isEmail ? trimmedIdentifier.split("@")[0] : trimmedIdentifier,
-        })
-
+      const message = "Supabase is not configured. Please contact support."
+      setError(message)
         toast({
-          title: "Demo login",
-          description: "Supabase is not configured. Using a demo account instead.",
+        variant: "destructive",
+        title: "Login unavailable",
+        description: message,
         })
-
-        router.push("/")
         setLoading(false)
-      }, 700)
       return
     }
 
@@ -153,6 +145,20 @@ export function LoginForm() {
 
       if (!sessionUser) {
         throw new Error("Unable to retrieve Supabase user session.")
+      }
+
+      if (isEmail && !sessionUser.email_confirmed_at) {
+        await supabase.auth.signOut()
+        const message =
+          "Please verify your email address before signing in. We just sent a confirmation link to your inbox."
+        setError(message)
+        toast({
+          variant: "destructive",
+          title: "Email not verified",
+          description: message,
+        })
+        setLoading(false)
+        return
       }
 
       const { data: profileData, error: profileError } = await supabase

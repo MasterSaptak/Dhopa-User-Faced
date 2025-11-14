@@ -25,7 +25,7 @@ export default function OrderPage() {
   const deliveryFee = useStore((state) => state.getDeliveryFee())
   const [activeSection, setActiveSection] = useState<"services" | "addons" | "delivery">("services")
   const [activeServiceCategoryId, setActiveServiceCategoryId] = useState<string | null>(serviceCategories[0]?.id ?? null)
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list")
   const shouldReduceMotion = useReducedMotion()
 
   const navTabs = useMemo(

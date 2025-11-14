@@ -35,7 +35,7 @@ export function ServiceCategory({ category, viewMode = "grid" }: ServiceCategory
         </Badge>
       </motion.div>
       {viewMode === "grid" ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
           {category.items.map((item) => (
             <ServiceItemCard key={item.id} item={item} viewMode="grid" />
           ))}

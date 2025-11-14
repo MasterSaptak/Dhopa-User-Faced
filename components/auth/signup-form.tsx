@@ -71,14 +71,14 @@ export function SignupForm() {
     setError(null)
 
     if (!supabaseConfigured) {
-      setTimeout(() => {
+      const message = "Supabase is not configured. Please contact support."
+      setError(message)
         toast({
-          title: "Account created (demo)",
-          description: "Supabase is not configured. Enable Supabase to persist accounts.",
+        variant: "destructive",
+        title: "Signup unavailable",
+        description: message,
         })
-        router.push("/login")
         setLoading(false)
-      }, 700)
       return
     }
 
